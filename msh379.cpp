@@ -4,11 +4,13 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/times.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <iostream>
 #include <vector>
 #include <signal.h>
+#include <errno.h>
 
 #define NTASK 32
 #define MAXWORD 32
@@ -113,7 +115,7 @@ void setLimit(){
 	lim.rlim_max = 600; //set hard limit to 10 minutes
 	
 	if (setrlimit(RLIMIT_CPU, &lim) == -1)
-		fprintf(stderr, "%d\n", errno); //FIX
+		printf("SETRLIMIT FAILED! %s\n", strerror(errno));
 
 }
 
@@ -176,7 +178,7 @@ void pdir(char token[][MAXWORD]){
 	char ptr[1024];
 
 	if (getcwd(ptr, 1024) == NULL)
-		cout<< "	getcwd failed"<< endl;
+		printf("GETCWD FAILED! %s\n", strerror(errno));
 	else cout<< "	cwd: "<< ptr<< endl;
 }
 
@@ -195,36 +197,36 @@ void lstasks(vector <task> tasks){
 * This function will attempt to run a command with up to 4 arguments. If successful, it will return 1.
 * If unsuccessful it will return 0.
 */
-int run(char token[][MAXWORD], int tokenNum){
+void run(char token[][MAXWORD], int tokenNum){
 	
 		if (tokenNum == 2){
 			if(execlp(token[1] , token[1], (char *) NULL) < 0){
-				cout<< "execlp error"<< endl;
-				return 0;
+				printf("EXECLP FAILED! %s\n", strerror(errno));
+				exit(0);
 			}
 		}
 		if (tokenNum == 3){
 			if(execlp(token[1], token[1], token[2], (char *) NULL) < 0){
-				cout<< "execlp error"<< endl;
-				return 0;
+				printf("EXECLP FAILED! %s\n", strerror(errno));
+				exit(0);
 			}
 		}
 		if (tokenNum == 4){
 			if(execlp(token[1], token[1], token[2], token[3], (char *) NULL) < 0){
-				cout<< "execlp error"<< endl;
-				return 0;
+				printf("EXECLP FAILED! %s\n", strerror(errno));
+				exit(0);
 			}	
 		}
 		if (tokenNum == 5){
 			if(execlp(token[1], token[1], token[2], token[3], token[4], (char *) NULL) < 0){
-				cout<< "execlp error"<< endl;
-				return 0;
+				printf("EXECLP FAILED! %s\n", strerror(errno));
+				exit(0);
 			}
 		}
 		if (tokenNum == 6) {
 			if(execlp(token[1], token[1], token[2], token[3], token[4], token[5], (char *) NULL) < 0){
-				cout<< "execlp error"<< endl;
-				return 0;
+				printf("EXECLP FAILED! %s\n", strerror(errno));
+				exit(0);
 			}
 		}
 	
@@ -248,16 +250,51 @@ void addTask(vector<task> &tasks, string command, pid_t pid){
 	tasks.push_back(newTask);
 }
 
+/*
+* This function will send the SIGSTOP signal to a process indicated by the
+* pid of the taskmin the idex specified by the user. 
+*/
 void stop(int index, vector<task> &tasks){
 	pid_t pid = tasks[index].pid;
 	
-	//signal(SIGSTOP, pid);
+	if (kill(pid, SIGSTOP) < 0)
+		printf("SIGSTOP FAILED! %s\n", strerror(errno));
 }
 
-void kill( int index, vector<task> &tasks){
+/*
+* This function kills a specific process, identified by it's index and using the pid
+* to send SIGKILL to the process. 
+*/
+void terminate( int index, vector<task> &tasks){
 	pid_t pid = tasks[index].pid;
 	
-	kill(pid, SIGKILL);
+	tasks[index].terminated = TERMINATED;
+	if (kill(pid, SIGKILL) < 0) 
+		printf("SIGKILL FAILED! %s\n", strerror(errno));
+}
+
+/*
+* This function continues a specific process that has been stopped, identified by it's index
+* and using the pid to send SIGCONT to the process. 
+*/
+void cont(int index, vector<task> &tasks){
+	pid_t pid = tasks[index].pid;
+	
+	if (kill(pid, SIGCONT) < 0)
+		printf("SIGCONT FAILED! %s\n", strerror(errno));
+}
+
+/*
+* The exit function will iterate through the vector of tasks and check if they have been explicitly
+* terminated. If it has not, it will call kill to terminate it itself before closing the shell.
+*/
+void exit(vector<task> &tasks){
+	pid_t pid;
+	
+	for(int i = 0; i < tasks.size(); i++){
+		if (tasks[i].terminated != TERMINATED)
+			terminate(i, tasks);
+	}
 }
 
 int main (){
@@ -320,18 +357,25 @@ int main (){
 			}
 			else{
 				addTask(tasks, command, forkPid);
-				wait(&status);
+				//wait(&status);
 			}
 		}
 		if ((string) token[0] == "stop"){
-			if(tokenNum != 2) cout<< " Please provide a single task number!" << endl;
+			if(tokenNum != 2) cout << " Please provide a single task number!" << endl;
 			else stop(atoi(token[1]), tasks);
 		}
-		if ((string) token[0] == "kill"){
-			if(tokenNum != 2) cout<< " Please provide a single task number!" << endl;
-			else kill(atoi(token[1]), tasks);
+		if ((string) token[0] == "terminate"){
+			if(tokenNum != 2) cout << " Please provide a single task number!" << endl;
+			else terminate(atoi(token[1]), tasks);
 		}
-		
+		if ((string) token[0] == "continue"){
+			if (tokenNum != 2) cout<< " Please provide a single task number!" << endl;
+			else cont(atoi(token[1]), tasks);
+		}
+		if ((string) token[0] == "exit"){
+			exit(tasks);
+			i = false;
+		}
 		if ((string) token[0] == "quit"){
 			i = false;
 		}
