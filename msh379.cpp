@@ -43,9 +43,10 @@ int split(string inStr, char token[][MAXWORD], char fieldDelim[]){
 		memset(token[i], 0 , sizeof(token[i]));
 	
 	string inStrCpy = inStr; //create a copy of the string passed to the function
-	if((tokenp = strtok(&inStr[0], fieldDelim)) == NULL) return 0; //return 0 if no token is found
-	
-	//stroe first token if found in if statement above
+	if((tokenp = strtok(&inStr[0], fieldDelim)) == NULL){
+		return 0; //return 0 if no token is found
+	}
+	//store first token if found in if statement above
 	strcpy(token[count], tokenp);
 	count++;
 	
@@ -297,6 +298,71 @@ void exit(vector<task> &tasks){
 	}
 }
 
+/*
+*
+*/
+void check(char token[][MAXWORD]){
+	FILE *processes;
+	char path[MAXLINE];
+	vector <string> children, pathSplit;
+
+	//Create pipe and run ps command in the background
+	if ((processes = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL){
+		printf("POPEN FAILED! %s\n", strerror(errno));
+		exit(0);
+	}
+	
+	bool terminated = false;
+	//Get the lines of the file popen generated and see if any match the pid
+	while (fgets(path, sizeof(path)-1, processes) != NULL){
+		string strPath = path;
+		char * word = strtok(path, " ");
+		
+		/* 
+		* Loop through the string to extract all tokens. Had to do this here because calls to
+		* split were failing and not extracting string properly.
+		*/
+		while( word != NULL ) {
+			pathSplit.push_back(word);
+			word = strtok(NULL, " ");
+		}
+
+		if (pathSplit[1] == token[1]){
+			if (pathSplit[3] == "Z"){
+				terminated = true;
+				printf("	target_pid = %s 	terminated\n", token[1]);
+				break;
+			}
+		}
+		
+		pathSplit.clear();
+	}
+	
+
+	/////NOTE NOT REACHING HERE I THINK
+	while (fgets(path, sizeof(path)-1, processes) != NULL){
+		string strPath = path;
+		cout<< strPath<< endl;
+		char * word = strtok(path, " ");
+		
+		/* 
+		* Loop through the string to extract all tokens. Had to do this here because calls to
+		* split were failing and not extracting string properly.
+		*/
+		while( word != NULL ) {
+			pathSplit.push_back(word);
+			word = strtok(NULL, " ");
+		}
+		
+		cout<< "2nd	"<< strPath<< endl;
+		if (pathSplit[1] == "PID") cout<< " " << strPath<< endl;
+		if (terminated == true){
+			//if (pathSplit[1] == token[1]) cout<< " " << strPath<< endl;
+		}
+		pathSplit.clear();
+	}
+}
+
 int main (){
 	vector <task> tasks;
 	setLimit();
@@ -320,7 +386,7 @@ int main (){
 		char* replacement = " ";
 		char* omit = "$";
 		
-		int replaced = gsub(command, omit, replacement);
+		gsub(command, omit, replacement);
 		int tokenNum = split(command, token, delim);
 		
 		if ((string) token[0] == "cdir"){
@@ -369,8 +435,13 @@ int main (){
 			else terminate(atoi(token[1]), tasks);
 		}
 		if ((string) token[0] == "continue"){
-			if (tokenNum != 2) cout<< " Please provide a single task number!" << endl;
+			if (tokenNum != 2) cout << " Please provide a single task number!" << endl;
 			else cont(atoi(token[1]), tasks);
+		}
+		if ((string) token[0] == "check"){
+			if (tokenNum != 2) 
+				cout << " Please provide only the pid of the process you wish to check!" << endl;
+			else check(token);
 		}
 		if ((string) token[0] == "exit"){
 			exit(tasks);
