@@ -1,15 +1,17 @@
 CC=g++
 EXE=msh379
-DEPS =
 OBJ = msh379.o
-CFLAGS = -Wall -std=c++11
+CFLAGS = -std=c++11
+FILES_TO_TAR = makefile msh379.cpp projectReport.pdf
 
-%.o: %.cpp $(DEPS)
+%.o: %.cpp
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(EXE): $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIB)
+	$(CC) -o $@ $^ $(CFLAGS)
 
-.PHONY: clean
+.PHONY: clean tar
 clean:
 	rm -f $(OBJ) $(EXE)
+tar:
+	tar -cvf CMPUT379-Ass1-Hdesmara.tar $(FILES_TO_TAR)
