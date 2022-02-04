@@ -282,10 +282,19 @@ void addTask(vector<task> &tasks, string command, pid_t pid){
 *	-tasks: a vector of the struct task containing accepted tasks
 */
 void stop(int index, vector<task> &tasks){
+	if (tasks.empty()) {
+		cout<< "	No tasks have been accepted yet!"<< endl;
+		return;
+	}
+	if (index >= tasks.size() || index < 0) {
+		cout<< "	Index out of bounds!"<< endl;
+		return;
+	}
 	pid_t pid = tasks[index].pid;
 	
 	if (kill(pid, SIGSTOP) < 0)
 		printf("SIGSTOP FAILED! %s\n", strerror(errno));
+	else cout<< "	Task "<< tasks[index].pid<< " stopped"<< endl;
 }
 
 /*
@@ -297,6 +306,10 @@ void stop(int index, vector<task> &tasks){
 *	-tasks: a vector of the struct task containing accepted tasks
 */
 void terminate( int index, vector<task> &tasks){
+	if (tasks.empty()) {
+		cout<< "	No tasks have been accepted yet!"<< endl;
+		return;
+	}
 	if (index >= tasks.size() || index < 0) {
 		cout<< "	Index out of bounds!"<< endl;
 		return;
@@ -307,6 +320,7 @@ void terminate( int index, vector<task> &tasks){
 	tasks[index].terminated = TERMINATED;
 	if (kill(pid, SIGKILL) < 0) 
 		printf("SIGKILL FAILED! %s\n", strerror(errno));
+	else cout<< "	Task "<< tasks[index].pid<< " terminated"<< endl;
 }
 
 /*
@@ -318,10 +332,20 @@ void terminate( int index, vector<task> &tasks){
 *	-tasks: a vector of the struct task containing accepted tasks
 */
 void cont(int index, vector<task> &tasks){
+	if (tasks.empty()) {
+		cout<< "	No tasks have been accepted yet!"<< endl;
+		return;
+	}
+	if (index >= tasks.size() || index < 0) {
+		cout<< "	Index out of bounds!"<< endl;
+		return;
+	}
+	
 	pid_t pid = tasks[index].pid;
 	
 	if (kill(pid, SIGCONT) < 0)
 		printf("SIGCONT FAILED! %s\n", strerror(errno));
+	else cout<< "	Task "<< tasks[index].pid<< " continued"<< endl;
 }
 
 /*
@@ -358,6 +382,7 @@ void check(char token[][MAXWORD]){
 	}
 	
 	bool terminated = false;
+	bool found = false;
 	string header;
 	//Get the lines of the file popen generated and see if any match the pid
 	while (fgets(path, sizeof(path)-1, processes) != NULL){
@@ -382,6 +407,8 @@ void check(char token[][MAXWORD]){
 		* and print their information by checking the children vector for matching parents.
 		*/
 		if (pathSplit[1] == token[1]){
+			found = true;
+			
 			if (pathSplit[3] == "Z"){
 				terminated = true;
 				printf("	target_pid = %s 	terminated\n\n", token[1]);
@@ -424,6 +451,8 @@ void check(char token[][MAXWORD]){
 	}
 	
 	if (pclose(processes) != 0) cout<< "PCLOSE FAILED!"<< endl;
+	
+	if (found == false) cout<< "	Invalid PID provided!"<< endl;
 	if (terminated == false) cout<< endl;
 	
 }
@@ -489,7 +518,10 @@ int main (){
 				else run(token, tokenNum);
 			}
 			else{
-				// sleep for a second in case there is output to make it cleaner
+				/*
+				* Sleep for a second in case there is output to make it cleaner and also to allow time 
+				* for the parent to catch the child.
+				*/
 				sleep(1);
 				int status;
 				pid_t child;
