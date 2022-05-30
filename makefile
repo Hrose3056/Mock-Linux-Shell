@@ -2,7 +2,7 @@ CC=g++
 EXE=prog
 OBJ = prog.o
 CFLAGS = -std=c++11
-FILES_TO_TAR = makefile msh379.cpp
+FILES_TO_TAR = makefile prog.cpp
 
 %.o: %.cpp
 	$(CC) -c -o $@ $< $(CFLAGS)
