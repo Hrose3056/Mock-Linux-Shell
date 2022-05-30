@@ -1,8 +1,8 @@
 CC=g++
-EXE=msh379
-OBJ = msh379.o
+EXE=prog
+OBJ = prog.o
 CFLAGS = -std=c++11
-FILES_TO_TAR = makefile msh379.cpp projectReport.pdf
+FILES_TO_TAR = makefile msh379.cpp
 
 %.o: %.cpp
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -14,4 +14,4 @@ $(EXE): $(OBJ)
 clean:
 	rm -f $(OBJ) $(EXE)
 tar:
-	tar -cvf CMPUT379-Ass1-Hdesmara.tar $(FILES_TO_TAR)
+	tar -cvf Mock-Linux-Shell-Hdesmara.tar $(FILES_TO_TAR)
